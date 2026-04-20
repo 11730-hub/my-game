@@ -1,151 +1,172 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="th">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>เกมทายเลข</title>
+
+<title>🎯 เกมทายเลข</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;700&display=swap" rel="stylesheet">
 
 <style>
-body {
-  font-family: Arial;
-  background: linear-gradient(45deg,#833AB4,#E1306C,#FCAF45);
-  display:flex;justify-content:center;align-items:center;
-  height:100vh;margin:0;color:white;
+*{font-family:'Kanit',sans-serif}
+body{background:#1a1a2e;color:white}
+
+.ig-btn{
+background:linear-gradient(135deg,#833AB4,#E1306C,#FCAF45);
 }
-.card {
-  background: rgba(0,0,0,0.5);
-  padding:20px;border-radius:15px;width:300px;text-align:center;
+.ig-card{
+background:rgba(255,255,255,0.1);
+backdrop-filter:blur(15px);
 }
-input,select,button {
-  width:100%;padding:10px;margin:5px;border-radius:8px;border:none;
-}
-button {background:#E1306C;color:white;cursor:pointer;}
-button:hover {background:#c2185b;}
 </style>
 </head>
 
-<body>
+<body class="flex flex-col items-center p-5">
 
-<div class="card">
-  <h2>🎮 เกมทายเลข</h2>
+<h1 class="text-3xl font-bold mb-4">🎯 เกมทายเลข</h1>
 
-  <input id="name" placeholder="ชื่อผู้เล่น">
+<!-- Setup -->
+<div id="setup" class="ig-card p-5 rounded-xl w-full max-w-md mb-4">
+<input id="name" placeholder="ชื่อผู้เล่น" class="w-full p-2 text-black rounded mb-2">
+<button onclick="startGame()" class="ig-btn w-full p-2 rounded">เริ่มเกม</button>
+</div>
 
-  <select id="level">
-    <option value="50">Easy (1-50)</option>
-    <option value="100" selected>Normal (1-100)</option>
-    <option value="500">Hard (1-500)</option>
-  </select>
+<!-- Game -->
+<div id="game" class="hidden ig-card p-5 rounded-xl w-full max-w-md">
 
-  <p>⏱ เวลา: <span id="time">60</span></p>
+<p>⏱ เวลา: <span id="time">60</span></p>
+<p>ครั้ง: <span id="attempt">0</span>/10</p>
 
-  <input id="guess" type="number" placeholder="เดาเลข">
-  <button onclick="checkGuess()">เดา</button>
+<input id="guess" type="number" class="w-full p-2 text-black rounded my-2">
+<button onclick="guessNum()" class="ig-btn w-full p-2 rounded">ทาย</button>
 
-  <p id="result"></p>
-  <p>ครั้งที่เดา: <span id="attempts">0</span></p>
+<p id="hint" class="mt-2"></p>
 
-  <h3>🏆 Top 5</h3>
-  <table id="scoreTable"></table>
+<button onclick="restart()" class="mt-3 text-sm underline">เล่นใหม่</button>
 
 </div>
 
-<audio id="winSound" src="https://www.soundjay.com/button/sounds/button-4.mp3"></audio>
+<!-- Leaderboard -->
+<div class="ig-card p-5 rounded-xl w-full max-w-md mt-5">
+
+<h2 class="font-bold mb-2">🏆 คะแนน</h2>
+
+<div id="board"></div>
+
+<button onclick="clearBoard()" class="mt-3 text-red-400 text-sm">ลบคะแนน</button>
+
+</div>
 
 <script>
-let random, attempts, max, timer, time=60;
+
+let secret,attempt,time,player,timer;
 
 function startGame(){
-  max = document.getElementById("level").value;
-  random = Math.floor(Math.random()*max)+1;
-  attempts = 0;
-  time = 60;
-  document.getElementById("attempts").innerText = 0;
-  document.getElementById("result").innerText="";
+player=document.getElementById('name').value;
+if(!player){alert("ใส่ชื่อก่อน");return;}
+
+document.getElementById('setup').classList.add('hidden');
+document.getElementById('game').classList.remove('hidden');
+
+restart();
 }
 
-function startTimer(){
-  timer = setInterval(()=>{
-    time--;
-    document.getElementById("time").innerText = time;
-    if(time<=0){
-      clearInterval(timer);
-      result.innerText="⏰ หมดเวลา!";
-    }
-  },1000);
+function restart(){
+secret=Math.floor(Math.random()*100)+1;
+attempt=0;
+time=60;
+
+document.getElementById('attempt').innerText=0;
+document.getElementById('time').innerText=time;
+document.getElementById('hint').innerText="";
+
+clearInterval(timer);
+
+timer=setInterval(()=>{
+time--;
+document.getElementById('time').innerText=time;
+
+if(time<=0){
+endGame(false);
+}
+},1000);
 }
 
-startGame();
-startTimer();
+function guessNum(){
 
-function checkGuess(){
-  let name = document.getElementById("name").value;
-  let guess = Number(document.getElementById("guess").value);
+let val=parseInt(document.getElementById('guess').value);
 
-  if(!name) return alert("ใส่ชื่อก่อน");
-  if(guess<1 || guess>max) return alert("ใส่เลขให้ถูกช่วง");
+if(!val)return;
 
-  attempts++;
-  document.getElementById("attempts").innerText = attempts;
+attempt++;
+document.getElementById('attempt').innerText=attempt;
 
-  let diff = Math.abs(guess - random);
-
-  if(guess > random){
-    result.innerText = "⬇️ ต่ำลง";
-  } else if(guess < random){
-    result.innerText = "⬆️ สูงขึ้น";
-  } else {
-    clearInterval(timer);
-
-    let score = 100 - attempts*5;
-
-    result.innerText = `🎉 ${name} ได้ ${score} คะแนน`;
-    document.getElementById("winSound").play();
-
-    document.body.style.background="green";
-    setTimeout(()=>document.body.style.background="",500);
-
-    saveScore(name, score);
-    loadScores();
-
-    setTimeout(()=>{
-      startGame();
-      startTimer();
-    },2000);
-  }
-
-  if(diff<=3) result.innerText += " 🔥🔥 ใกล้มาก!";
-  else if(diff<=10) result.innerText += " 🔥";
-
-  document.getElementById("guess").value="";
+if(val===secret){
+endGame(true);
+}
+else if(val>secret){
+document.getElementById('hint').innerText="ต่ำกว่านี้";
+}
+else{
+document.getElementById('hint').innerText="สูงกว่านี้";
 }
 
-function saveScore(name, score){
-  let s = JSON.parse(localStorage.getItem("scores")||"[]");
-  s.push({name,score});
-  s.sort((a,b)=>b.score-a.score);
-  s = s.slice(0,5);
-  localStorage.setItem("scores", JSON.stringify(s));
+if(attempt>=10){
+endGame(false);
 }
 
-function loadScores(){
-  let table = document.getElementById("scoreTable");
-  let s = JSON.parse(localStorage.getItem("scores")||"[]");
-
-  table.innerHTML = "<tr><th>#</th><th>ชื่อ</th><th>คะแนน</th></tr>";
-
-  s.forEach((p,i)=>{
-    table.innerHTML += `
-      <tr>
-        <td>${i+1}</td>
-        <td>${p.name}</td>
-        <td>${p.score}</td>
-      </tr>
-    `;
-  });
 }
 
-loadScores();
+function endGame(win){
+
+clearInterval(timer);
+
+let score=win?100-(attempt*10):0;
+
+alert(win?"🎉 ชนะ!":"😢 แพ้!");
+
+saveScore(score);
+renderBoard();
+}
+
+function saveScore(score){
+
+let data=JSON.parse(localStorage.getItem("scores")||"[]");
+
+data.push({
+name:player,
+score:score,
+date:new Date().toLocaleDateString()
+});
+
+localStorage.setItem("scores",JSON.stringify(data));
+}
+
+function renderBoard(){
+
+let data=JSON.parse(localStorage.getItem("scores")||"[]");
+
+data.sort((a,b)=>b.score-a.score);
+
+let html="";
+
+data.slice(0,5).forEach((d,i)=>{
+html+=`<p>${i+1}. ${d.name} - ${d.score}</p>`;
+});
+
+document.getElementById("board").innerHTML=html;
+}
+
+function clearBoard(){
+localStorage.removeItem("scores");
+renderBoard();
+}
+
+renderBoard();
+
 </script>
 
 </body>
