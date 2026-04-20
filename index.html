@@ -1,65 +1,26 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Smart Guess Game</title>
+<title>เกมทายเลข</title>
 
 <style>
 body {
   font-family: Arial;
-  background: linear-gradient(45deg, #f58529, #dd2a7b, #8134af, #515bd4);
-  margin: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
+  background: linear-gradient(45deg,#833AB4,#E1306C,#FCAF45);
+  display:flex;justify-content:center;align-items:center;
+  height:100vh;margin:0;color:white;
 }
-
 .card {
-  background: white;
-  padding: 20px;
-  border-radius: 15px;
-  width: 90%;
-  max-width: 400px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-  text-align: center;
+  background: rgba(0,0,0,0.5);
+  padding:20px;border-radius:15px;width:300px;text-align:center;
 }
-
-input {
-  width: 95%;
-  padding: 10px;
-  margin: 5px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
+input,select,button {
+  width:100%;padding:10px;margin:5px;border-radius:8px;border:none;
 }
-
-button {
-  padding: 10px;
-  width: 100%;
-  background: #dd2a7b;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-button:hover {
-  background: #c2185b;
-}
-
-table {
-  width: 100%;
-  margin-top: 10px;
-}
-
-td, th {
-  padding: 6px;
-}
-
-.gold { color: gold; }
-.silver { color: gray; }
-.bronze { color: #cd7f32; }
+button {background:#E1306C;color:white;cursor:pointer;}
+button:hover {background:#c2185b;}
 </style>
 </head>
 
@@ -69,56 +30,94 @@ td, th {
   <h2>🎮 เกมทายเลข</h2>
 
   <input id="name" placeholder="ชื่อผู้เล่น">
-  <input id="guess" type="number" placeholder="เดาเลข 1-100">
 
+  <select id="level">
+    <option value="50">Easy (1-50)</option>
+    <option value="100" selected>Normal (1-100)</option>
+    <option value="500">Hard (1-500)</option>
+  </select>
+
+  <p>⏱ เวลา: <span id="time">60</span></p>
+
+  <input id="guess" type="number" placeholder="เดาเลข">
   <button onclick="checkGuess()">เดา</button>
 
   <p id="result"></p>
+  <p>ครั้งที่เดา: <span id="attempts">0</span></p>
 
   <h3>🏆 Top 5</h3>
   <table id="scoreTable"></table>
+
 </div>
 
 <audio id="winSound" src="https://www.soundjay.com/button/sounds/button-4.mp3"></audio>
 
 <script>
-let random = Math.floor(Math.random()*100)+1;
-let attempts = 0;
+let random, attempts, max, timer, time=60;
 
-window.onload = loadScores;
+function startGame(){
+  max = document.getElementById("level").value;
+  random = Math.floor(Math.random()*max)+1;
+  attempts = 0;
+  time = 60;
+  document.getElementById("attempts").innerText = 0;
+  document.getElementById("result").innerText="";
+}
 
-function checkGuess() {
-  let guess = Number(document.getElementById("guess").value);
+function startTimer(){
+  timer = setInterval(()=>{
+    time--;
+    document.getElementById("time").innerText = time;
+    if(time<=0){
+      clearInterval(timer);
+      result.innerText="⏰ หมดเวลา!";
+    }
+  },1000);
+}
+
+startGame();
+startTimer();
+
+function checkGuess(){
   let name = document.getElementById("name").value;
+  let guess = Number(document.getElementById("guess").value);
 
-  if (!name) return alert("ใส่ชื่อก่อน");
+  if(!name) return alert("ใส่ชื่อก่อน");
+  if(guess<1 || guess>max) return alert("ใส่เลขให้ถูกช่วง");
 
   attempts++;
+  document.getElementById("attempts").innerText = attempts;
 
-  if (guess > random) result.innerText = "📉 มากไป!";
-  else if (guess < random) result.innerText = "📈 น้อยไป!";
-  else {
-    let score = 100 - attempts;
+  let diff = Math.abs(guess - random);
+
+  if(guess > random){
+    result.innerText = "⬇️ ต่ำลง";
+  } else if(guess < random){
+    result.innerText = "⬆️ สูงขึ้น";
+  } else {
+    clearInterval(timer);
+
+    let score = 100 - attempts*5;
+
     result.innerText = `🎉 ${name} ได้ ${score} คะแนน`;
-
     document.getElementById("winSound").play();
 
-    fetch("https://script.google.com/macros/s/AKfycbwkLaNQ1HlhqgKllCg-9p9RGAlesDw7GkNmc-gtwIdQwMFzU4MVNIJzSigHvT4urJtxwg/exec", {
-      method: "POST",
-      body: JSON.stringify({
-        name, score, attempts,
-        date: new Date().toLocaleString()
-      })
-    });
+    document.body.style.background="green";
+    setTimeout(()=>document.body.style.background="",500);
 
     saveScore(name, score);
     loadScores();
 
     setTimeout(()=>{
-      random = Math.floor(Math.random()*100)+1;
-      attempts = 0;
+      startGame();
+      startTimer();
     },2000);
   }
+
+  if(diff<=3) result.innerText += " 🔥🔥 ใกล้มาก!";
+  else if(diff<=10) result.innerText += " 🔥";
+
+  document.getElementById("guess").value="";
 }
 
 function saveScore(name, score){
@@ -133,23 +132,20 @@ function loadScores(){
   let table = document.getElementById("scoreTable");
   let s = JSON.parse(localStorage.getItem("scores")||"[]");
 
-  table.innerHTML = "<tr><th>อันดับ</th><th>ชื่อ</th><th>คะแนน</th></tr>";
+  table.innerHTML = "<tr><th>#</th><th>ชื่อ</th><th>คะแนน</th></tr>";
 
   s.forEach((p,i)=>{
-    let medal = "";
-    if(i==0) medal="🥇";
-    else if(i==1) medal="🥈";
-    else if(i==2) medal="🥉";
-
     table.innerHTML += `
       <tr>
-        <td>${medal || (i+1)}</td>
+        <td>${i+1}</td>
         <td>${p.name}</td>
         <td>${p.score}</td>
       </tr>
     `;
   });
 }
+
+loadScores();
 </script>
 
 </body>
